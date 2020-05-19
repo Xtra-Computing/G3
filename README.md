@@ -24,7 +24,19 @@ G3 is built based on **Gunrock**, a CUDA library for graph-processing designed s
 ### Prerequisites
 
 ### Quick Install
-
+```
+git clone --recursive https://github.com/Xtra-Computing/G3.git
+cd G3
+mkdir build
+cd build
+cmake ..
+make -j
+```
+After that, you can run the example GCN application:
+```
+cd bin
+./gcn
+```
 
 ## How to cite **G<sup>**3**</sup>** 
 If you use **G<sup>**3**</sup>**  in your paper, please cite our work ([full version](https://www.comp.nus.edu.sg/~hebs/pub/vldb2020-G3-submission.pdf)).
