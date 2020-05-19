@@ -22,6 +22,11 @@ G3 is built based on **Gunrock**, a CUDA library for graph-processing designed s
 ## Getting Started
 
 ### Prerequisites
+```
+CMake >= 3.10
+G++ >= 7.5
+CUDA >= 9.0
+```
 
 ### Quick Install
 ```
