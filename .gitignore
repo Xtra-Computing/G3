@@ -50,4 +50,4 @@ gunrock/util/gitsha1.c
 build
 
 # ignore clion files
-./.idea*
+.idea*

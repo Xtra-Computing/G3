@@ -52,21 +52,21 @@ cudaError_t UseParameters(util::Parameters &parameters) {
   GUARD_CU(parameters.Use<std::string>(
       "feature_file",
       util::REQUIRED_ARGUMENT | util::SINGLE_VALUE | util::REQUIRED_PARAMETER,
-      "data/citeseer.svmlight",
+      "../../dataset/gcn/citeseer.svmlight",
       "input file name to feature matrix", __FILE__, __LINE__
       ));
 
   GUARD_CU(parameters.Use<std::string>(
       "split_file",
       util::REQUIRED_ARGUMENT | util::SINGLE_VALUE | util::REQUIRED_PARAMETER,
-      "data/citeseer.split",
+      "../../dataset/gcn/citeseer.split",
       "split of nodes", __FILE__, __LINE__
       ));
 
   GUARD_CU(parameters.Use<std::string>(
       "graph_file",
       util::REQUIRED_ARGUMENT | util::SINGLE_VALUE | util::REQUIRED_PARAMETER,
-      "data/citeseer.graph",
+      "../../dataset/gcn/citeseer.graph",
       "split of nodes", __FILE__, __LINE__
       ));
 
