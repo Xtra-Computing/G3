@@ -1,0 +1,329 @@
+Loading Matrix-market coordinate-formatted graph ...
+  Reading meta data from test.mtx.meta
+  Reading edge lists from test.mtx.coo_edge_pairs
+Reading from test.mtx.coo_edge_pairs, typeId = 262, targetId = 262, length = 2
+  Substracting 1 from node Ids...
+  Edge doubleing: 2 -> 4 edges
+  graph loaded as COO in 0.021771s.
+Converting 3 vertices, 4 directed edges ( ordered tuples) to CSR format...Done (0s).
+Degree Histogram (3 vertices, 4 edges):
+    Degree 0: 0 (0.000000 %)
+    Degree 2^0: 2 (66.666667 %)
+    Degree 2^1: 1 (33.333333 %)
+
+size of in: 3
+dataslice input size: 3
+========= CUDA-MEMCHECK
+========= Invalid __global__ read of size 8
+=========     at 0x00000098 in _ZN7gunrock5oprtr13ForAll_KernelINS_4util7Array1DIjdLj0ELj0EEEjZNS_3app8graphsum7ProblemINS5_9TestGraphIjjdLj256ELj0EEEjdLj0EE9DataSlice5ResetEPKdjEUlPdRKjE_EEvT_T1_T0_
+=========     by thread (2,0,0) in block (0,0,0)
+=========     Address 0x0301dc20 is out of bounds
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========     Host Frame:/lib64/libcuda.so.1 (cuLaunchKernel + 0x2fe) [0x282a4e]
+=========     Host Frame:graphsum [0x104989]
+=========     Host Frame:graphsum [0x104a17]
+=========     Host Frame:graphsum [0x13ad65]
+=========     Host Frame:graphsum [0x1e480]
+=========     Host Frame:graphsum [0x16162]
+=========     Host Frame:graphsum [0x16195]
+=========     Host Frame:graphsum [0x53c20]
+=========     Host Frame:graphsum [0x85937]
+=========     Host Frame:graphsum [0x51b88]
+=========     Host Frame:graphsum [0xb1b94]
+=========     Host Frame:graphsum [0xad746]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Invalid __global__ read of size 8
+=========     at 0x00000098 in _ZN7gunrock5oprtr13ForAll_KernelINS_4util7Array1DIjdLj0ELj0EEEjZNS_3app8graphsum7ProblemINS5_9TestGraphIjjdLj256ELj0EEEjdLj0EE9DataSlice5ResetEPKdjEUlPdRKjE_EEvT_T1_T0_
+=========     by thread (1,0,0) in block (0,0,0)
+=========     Address 0x0301dc18 is out of bounds
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========     Host Frame:/lib64/libcuda.so.1 (cuLaunchKernel + 0x2fe) [0x282a4e]
+=========     Host Frame:graphsum [0x104989]
+=========     Host Frame:graphsum [0x104a17]
+=========     Host Frame:graphsum [0x13ad65]
+=========     Host Frame:graphsum [0x1e480]
+=========     Host Frame:graphsum [0x16162]
+=========     Host Frame:graphsum [0x16195]
+=========     Host Frame:graphsum [0x53c20]
+=========     Host Frame:graphsum [0x85937]
+=========     Host Frame:graphsum [0x51b88]
+=========     Host Frame:graphsum [0xb1b94]
+=========     Host Frame:graphsum [0xad746]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Invalid __global__ read of size 8
+=========     at 0x00000098 in _ZN7gunrock5oprtr13ForAll_KernelINS_4util7Array1DIjdLj0ELj0EEEjZNS_3app8graphsum7ProblemINS5_9TestGraphIjjdLj256ELj0EEEjdLj0EE9DataSlice5ResetEPKdjEUlPdRKjE_EEvT_T1_T0_
+=========     by thread (0,0,0) in block (0,0,0)
+=========     Address 0x0301dc10 is out of bounds
+=========     Saved host backtrace up to driver entry point at kernel launch time
+=========     Host Frame:/lib64/libcuda.so.1 (cuLaunchKernel + 0x2fe) [0x282a4e]
+=========     Host Frame:graphsum [0x104989]
+=========     Host Frame:graphsum [0x104a17]
+=========     Host Frame:graphsum [0x13ad65]
+=========     Host Frame:graphsum [0x1e480]
+=========     Host Frame:graphsum [0x16162]
+=========     Host Frame:graphsum [0x16195]
+=========     Host Frame:graphsum [0x53c20]
+=========     Host Frame:graphsum [0x85937]
+=========     Host Frame:graphsum [0x51b88]
+=========     Host Frame:graphsum [0xb1b94]
+=========     Host Frame:graphsum [0xad746]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaLaunchKernel. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x13ada5]
+=========     Host Frame:graphsum [0x1e480]
+=========     Host Frame:graphsum [0x16162]
+=========     Host Frame:graphsum [0x16195]
+=========     Host Frame:graphsum [0x53c20]
+=========     Host Frame:graphsum [0x85937]
+=========     Host Frame:graphsum [0x51b88]
+=========     Host Frame:graphsum [0xb1b94]
+=========     Host Frame:graphsum [0xad746]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaLaunchKernel. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x13ada5]
+=========     Host Frame:graphsum [0x1e480]
+=========     Host Frame:graphsum [0x162d6]
+=========     Host Frame:graphsum [0x16309]
+=========     Host Frame:graphsum [0x53c46]
+=========     Host Frame:graphsum [0x85b90]
+=========     Host Frame:graphsum [0x51c19]
+=========     Host Frame:graphsum [0xb1b94]
+=========     Host Frame:graphsum [0xad746]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaLaunchKernel. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x13ada5]
+=========     Host Frame:graphsum [0x1e480]
+=========     Host Frame:graphsum [0x1644a]
+=========     Host Frame:graphsum [0x1647d]
+=========     Host Frame:graphsum [0x53c6c]
+=========     Host Frame:graphsum [0x85d6a]
+=========     Host Frame:graphsum [0x51c8c]
+=========     Host Frame:graphsum [0xb1b94]
+=========     Host Frame:graphsum [0xad746]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaMemcpy. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x124fcf]
+=========     Host Frame:graphsum [0xbaa2e]
+=========     Host Frame:graphsum [0xb1c04]
+=========     Host Frame:graphsum [0xad746]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaMemcpy. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x124fcf]
+=========     Host Frame:graphsum [0x6311d]
+=========     Host Frame:graphsum [0xd1bda]
+=========     Host Frame:graphsum [0xc8369]
+=========     Host Frame:graphsum [0xbae31]
+=========     Host Frame:graphsum [0xb1caf]
+=========     Host Frame:graphsum [0xad75a]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaMemcpy. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x124fcf]
+=========     Host Frame:graphsum [0xbb9b9]
+=========     Host Frame:graphsum [0xb200f]
+=========     Host Frame:graphsum [0xad7c1]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaFree. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x1308b6]
+=========     Host Frame:graphsum [0x5fd83]
+=========     Host Frame:graphsum [0xd20ce]
+=========     Host Frame:graphsum [0xc86ca]
+=========     Host Frame:graphsum [0xbbd5c]
+=========     Host Frame:graphsum [0xb2069]
+=========     Host Frame:graphsum [0xad7d5]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaFree. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x1308b6]
+=========     Host Frame:graphsum [0xbc94a]
+=========     Host Frame:graphsum [0xb213f]
+=========     Host Frame:graphsum [0xad7e9]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" o6.91633e-310 
+6.91633e-310 
+0 
+n CUDA API call to cudaFree. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x1308b6]
+=========     Host Frame:graphsum [0x5fd83]
+=========     Host Frame:graphsum [0xd20ce]
+=========     Host Frame:graphsum [0xc86ca]
+=========     Host Frame:graphsum [0xbbd5c]
+=========     Host Frame:graphsum [0xb2069]
+=========     Host Frame:graphsum [0xb1337]
+=========     Host Frame:graphsum [0xad7fc]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaFree. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x1308b6]
+=========     Host Frame:graphsum [0x60383]
+=========     Host Frame:graphsum [0xcd12e]
+=========     Host Frame:graphsum [0xc337f]
+=========     Host Frame:graphsum [0xbc879]
+=========     Host Frame:graphsum [0xb213f]
+=========     Host Frame:graphsum [0xb11f9]
+=========     Host Frame:graphsum [0xad80b]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorLaunchFailure (error 719) due to "unspecified launch failure" on CUDA API call to cudaFree. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x1308b6]
+=========     Host Frame:graphsum [0xbc94a]
+=========     Host Frame:graphsum [0xb213f]
+=========     Host Frame:graphsum [0xb11f9]
+=========     Host Frame:graphsum [0xad80b]
+=========     Host Frame:graphsum [0xa9e95]
+=========     Host Frame:graphsum [0xa3bd7]
+=========     Host Frame:graphsum [0x973b7]
+=========     Host Frame:graphsum [0x88eb7]
+=========     Host Frame:graphsum [0x589a2]
+=========     Host Frame:graphsum [0x3555e]
+=========     Host Frame:graphsum [0xc8ca]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xf5) [0x223d5]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= Program hit cudaErrorCudartUnloading (error 4) due to "driver shutting down" on CUDA API call to cudaDeviceReset. 
+=========     Saved host backtrace up to driver entry point at error
+=========     Host Frame:/lib64/libcuda.so.1 [0x391b13]
+=========     Host Frame:graphsum [0x122ea6]
+=========     Host Frame:graphsum [0xf4791]
+=========     Host Frame:graphsum [0xf77b9]
+=========     Host Frame:/lib64/libc.so.6 [0x39b69]
+=========     Host Frame:/lib64/libc.so.6 [0x39bb7]
+=========     Host Frame:/lib64/libc.so.6 (__libc_start_main + 0xfc) [0x223dc]
+=========     Host Frame:graphsum [0x8b79]
+=========
+========= ERROR SUMMARY: 15 errors

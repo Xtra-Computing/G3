@@ -1,0 +1,53 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# Ignore graph dataset files
+*.graph
+*.mtx*
+
+# Ignore vim undo file
+*.un~
+
+# Ignore tarball
+*.tar.gz
+
+# Ignore bin directory
+bin/
+
+# Ignore eval directory
+eval/
+
+# Ignore doc generated files
+doxygen/warn.log
+doxygen/html
+
+# Ignore text files under tests directories
+unittests/*/*.txt
+examples/*/*.txt
+
+# exceptions for ignore
+!unittests/*/CMakeLists.txt
+!examples/*/CMakeLists.txt
+
+# Ignore vim temp files
+*.sw~
+
+# Ignore cmake configure_file() files
+gunrock/util/gitsha1.c
+
+# Ignore build directory
+build
+
+# ignore clion files
+./.idea*
