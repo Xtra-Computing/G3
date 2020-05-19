@@ -17,7 +17,7 @@ G3 is research prototype that is currently in active development. You are welcom
 
 We have done some preliminary studies to show how such system can be used to build Graph Convolutional Network (GCN) , the state of the art in various GNN models, and how our implementation exceeds the performances of Tensorﬂow implementation (the original implementation) as well as PyTorch implementation by a signiﬁcant margin. Details are [here](https://www.comp.nus.edu.sg/~hebs/pub/vldb2020-G3-submission.pdf).
 
-G3 is built based on **Gunrock**, a CUDA library for graph-processing designed specifically for the GPU.  For more details, see [Gunrock's Github repo](https://github.com/gunrock/gunrock/).
+G3 is built based on **Gunrock**, a CUDA library for graph-processing designed specifically for the GPU. For more details, see [Gunrock's Github repo](https://github.com/gunrock/gunrock/). Most of the code is reused from Gunrock's code base. G3 added these components to Gunrock to efficiently support GNN training 1) [GCN App](/gunrock/app/gcn) and 2) [GCN Example](/examples/gcn).
 
 ## Getting Started
 
