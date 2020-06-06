@@ -49,7 +49,7 @@ If you use **G<sup>**3**</sup>**  in your paper, please cite our work ([full ver
 @article{husong2020g3,
  author = {Liu, Husong and Lu, Shengliang and Chen, Xinyu and He, Bingsheng},
  title = {G3: When Graph Neural Networks Meet Parallel Graph Processing Systems on GPUs},
- journal = {under submission},
+ journal = {PVLDB (Proceedings of the VLDB Endowment), demo paper},
  year = {2020}
 }
 ```
