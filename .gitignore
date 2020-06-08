@@ -13,7 +13,6 @@
 *.a
 
 # Ignore graph dataset files
-*.graph
 *.mtx*
 
 # Ignore vim undo file
