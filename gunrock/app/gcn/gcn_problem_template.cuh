@@ -143,24 +143,6 @@ for layer in layers:
   cog.outl('Array ' + varname + ';')
   cog.outl('Array ' + varname + '_grad;')
 ]]]*/
-Array w0;
-Array w0_grad;
-Array w1;
-Array w1_grad;
-Array w2;
-Array w2_grad;
-Array xw0;
-Array xw0_grad;
-Array Axw0;
-Array Axw0_grad;
-Array Axw0w1;
-Array Axw0w1_grad;
-Array AAxw0w1;
-Array AAxw0w1_grad;
-Array AAxw0w1w2;
-Array AAxw0w1w2_grad;
-Array AAAxw0w1w2;
-Array AAAxw0w1w2_grad;
 //[[[end]]]
     Array penalty; //, w0, xw0, Axw0, Axw0w1, AAxw0w1, w1;
     //Array w0_grad, xw0_grad, Axw0_grad, Axw0w1_grad, AAxw0w1_grad, w1_grad;
@@ -200,24 +182,6 @@ for layer in layers:
   cog.outl(varname + '.SetName("' + varname + '");')
   cog.outl(varname + '_grad.SetName("' + varname + '_grad");')
 ]]]*/
-w0.SetName("w0");
-w0_grad.SetName("w0_grad");
-w1.SetName("w1");
-w1_grad.SetName("w1_grad");
-w2.SetName("w2");
-w2_grad.SetName("w2_grad");
-xw0.SetName("xw0");
-xw0_grad.SetName("xw0_grad");
-Axw0.SetName("Axw0");
-Axw0_grad.SetName("Axw0_grad");
-Axw0w1.SetName("Axw0w1");
-Axw0w1_grad.SetName("Axw0w1_grad");
-AAxw0w1.SetName("AAxw0w1");
-AAxw0w1_grad.SetName("AAxw0w1_grad");
-AAxw0w1w2.SetName("AAxw0w1w2");
-AAxw0w1w2_grad.SetName("AAxw0w1w2_grad");
-AAAxw0w1w2.SetName("AAAxw0w1w2");
-AAAxw0w1w2_grad.SetName("AAAxw0w1w2_grad");
 //[[[end]]]
       //xw0.SetName ("xw0");
       //Axw0.SetName ("Axw0");
@@ -306,24 +270,6 @@ for layer in layers:
   cog.outl('GUARD_CU(' + varname + '.Allocate(' + 'num_nodes * ' + str(width) + '))')
   cog.outl('GUARD_CU(' + varname + '_grad.Allocate(' + 'num_nodes * ' + str(width) + '))')
 ]]]*/
-GUARD_CU(w0.Allocate(num_nodes * 16))
-GUARD_CU(w0_grad.Allocate(num_nodes * 16))
-GUARD_CU(w1.Allocate(16 * 12))
-GUARD_CU(w1_grad.Allocate(16 * 12))
-GUARD_CU(w2.Allocate(12 * out_dim))
-GUARD_CU(w2_grad.Allocate(12 * out_dim))
-GUARD_CU(xw0.Allocate(num_nodes * 16))
-GUARD_CU(xw0_grad.Allocate(num_nodes * 16))
-GUARD_CU(Axw0.Allocate(num_nodes * 16))
-GUARD_CU(Axw0_grad.Allocate(num_nodes * 16))
-GUARD_CU(Axw0w1.Allocate(num_nodes * 12))
-GUARD_CU(Axw0w1_grad.Allocate(num_nodes * 12))
-GUARD_CU(AAxw0w1.Allocate(num_nodes * 12))
-GUARD_CU(AAxw0w1_grad.Allocate(num_nodes * 12))
-GUARD_CU(AAxw0w1w2.Allocate(num_nodes * out_dim))
-GUARD_CU(AAxw0w1w2_grad.Allocate(num_nodes * out_dim))
-GUARD_CU(AAAxw0w1w2.Allocate(num_nodes * out_dim))
-GUARD_CU(AAAxw0w1w2_grad.Allocate(num_nodes * out_dim))
 //[[[end]]]
       //GUARD_CU (w0.Allocate (in_dim * hid_dim))
       //GUARD_CU (w1.Allocate (hid_dim * out_dim))
@@ -356,27 +302,6 @@ GUARD_CU(AAAxw0w1w2_grad.Allocate(num_nodes * out_dim))
         cog.outl('}')
         cog.outl('))')
       ]]]*/
-      curandGenerateUniformDouble(gen, w0.GetPointer(util::DEVICE), w0.GetSize ());
-      range = sqrt (6.0 / (num_nodes + 16));
-      GUARD_CU (w0.ForEach (
-      [range]__host__ __device__(ValueT &x) {
-      x = (x - 0.5) * range * 2;
-      }
-      ))
-      curandGenerateUniformDouble(gen, w1.GetPointer(util::DEVICE), w1.GetSize ());
-      range = sqrt (6.0 / (16 + 12));
-      GUARD_CU (w1.ForEach (
-      [range]__host__ __device__(ValueT &x) {
-      x = (x - 0.5) * range * 2;
-      }
-      ))
-      curandGenerateUniformDouble(gen, w2.GetPointer(util::DEVICE), w2.GetSize ());
-      range = sqrt (6.0 / (12 + out_dim));
-      GUARD_CU (w2.ForEach (
-      [range]__host__ __device__(ValueT &x) {
-      x = (x - 0.5) * range * 2;
-      }
-      ))
       //[[[end]]]
       //curandGenerateUniformDouble(gen, w0.GetPointer(util::DEVICE), w0.GetSize ());
       //ValueT range = sqrt (6.0 / (in_dim + hid_dim));
@@ -444,21 +369,6 @@ GUARD_CU(AAAxw0w1w2_grad.Allocate(num_nodes * out_dim))
           cog.outl('data_slices[0][0].sub_graph[0].SpmatT::CsrT::edge_values;')
           cog.outl('static_cast<dropout<SizeT, ValueT>*>(modules[' + str(i - 2) + '])->data = x_val;')
       ]]]*/
-      modules.push_back(new dropout<SizeT, ValueT>(x.edge_values, dummy, 0.5, &gen, &fw_dropout, &bw_dropout));
-      modules.push_back(new sprmul<SizeT, ValueT, SpmatT>(parameters, x, w0, w0_grad, xw0, xw0_grad, num_nodes, 16, &fw_sprmul, &bw_sprmul));
-      x_val = static_cast<sprmul<SizeT, ValueT, SpmatT>*>(modules[1])->problem->
-      data_slices[0][0].sub_graph[0].SpmatT::CsrT::edge_values;
-      static_cast<dropout<SizeT, ValueT>*>(modules[0])->data = x_val;
-      modules.push_back(new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, xw0, xw0_grad, Axw0, Axw0_grad, 16, &fw_graphsum, &bw_graphsum));
-      modules.push_back(new relu<SizeT, ValueT>(Axw0, Axw0_grad, num_nodes * 16, &fw_relu, &bw_relu));
-      modules.push_back(new dropout<SizeT, ValueT>(Axw0, &Axw0_grad, 0.5, &gen, &fw_dropout, &bw_dropout));
-      modules.push_back(new mat_mul<SizeT, ValueT>(Axw0, Axw0_grad, w1, w1_grad, Axw0w1, Axw0w1_grad, num_nodes, 16, 12, &fw_matmul, &bw_matmul));
-      modules.push_back(new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, Axw0w1, Axw0w1_grad, AAxw0w1, AAxw0w1_grad, 12, &fw_graphsum, &bw_graphsum));
-      modules.push_back(new relu<SizeT, ValueT>(AAxw0w1, AAxw0w1_grad, num_nodes * 12, &fw_relu, &bw_relu));
-      modules.push_back(new dropout<SizeT, ValueT>(AAxw0w1, &AAxw0w1_grad, 0.5, &gen, &fw_dropout, &bw_dropout));
-      modules.push_back(new mat_mul<SizeT, ValueT>(AAxw0w1, AAxw0w1_grad, w2, w2_grad, AAxw0w1w2, AAxw0w1w2_grad, num_nodes, 12, out_dim, &fw_matmul, &bw_matmul));
-      modules.push_back(new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, AAxw0w1w2, AAxw0w1w2_grad, AAAxw0w1w2, AAAxw0w1w2_grad, out_dim, &fw_graphsum, &bw_graphsum));
-      modules.push_back(new cross_entropy<SizeT, ValueT, GraphT>(parameters, AAAxw0w1w2, AAAxw0w1w2_grad, truth, num_nodes, out_dim, &fw_loss));
       //[[[end]]]
       //modules.push_back(new dropout<SizeT, ValueT>(x.edge_values, dummy, 0.5, &gen, &fw_dropout, &bw_dropout));
       //modules.push_back(new sprmul<SizeT, ValueT, SpmatT>(parameters, x, w0, w0_grad, xw0, xw0_grad, in_dim, hid_dim, &fw_sprmul, &bw_sprmul));
@@ -484,9 +394,6 @@ GUARD_CU(AAAxw0w1w2_grad.Allocate(num_nodes * out_dim))
       for i in range(count_weight_matrices):
         cog.outl('vars.emplace_back(w' + str(i) + ', w' + str(i) + '_grad, ' + is_decay[i] + ');')
       ]]]*/
-      vars.emplace_back(w0, w0_grad, true);
-      vars.emplace_back(w1, w1_grad, false);
-      vars.emplace_back(w2, w2_grad, false);
       //[[[end]]]
       //vars.emplace_back(w0, w0_grad, true);
       //vars.emplace_back(w1, w1_grad, false);

@@ -76,7 +76,7 @@ struct GCNIterationLoop
     auto &w0 = data_slice.w0;
     auto &penalty = data_slice.penalty;
     auto &truth = data_slice.truth;
-    auto &out = data_slice.AAxw0w1;
+//    auto &out = data_slice.AAxw0w1;
     auto &cnt = data_slice.cnt;
     auto &out_dim = data_slice.out_dim;
     auto &wrong = data_slice.wrong;
@@ -187,7 +187,8 @@ struct GCNIterationLoop
     auto &wrong = data_slice.wrong;
     auto &out_dim = data_slice.out_dim;
     auto &cnt = data_slice.cnt;
-    auto &out = data_slice.AAxw0w1;
+    auto &out = static_cast<cross_entropy<SizeT, ValueT, typename EnactorT::Problem::GraphT>*>
+                (data_slice.modules.back())->logits;
     auto &w0 = data_slice.w0;
     auto &truth = data_slice.truth;
     auto &modules = data_slice.modules;

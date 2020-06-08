@@ -1,0 +1,56 @@
+{
+  "type":"custome",
+  "layers":[
+    {
+      "name":"input"
+    },
+    {
+      "name":"dropout",
+      "rate":0.5
+    },
+    {
+      "name":"sprmul",
+      "height":"num_nodes",
+      "width":16,
+      "decay":"true"
+    },
+    {
+      "name":"graph_sum"
+    },
+    {
+      "name":"relu"
+    },
+    {
+      "name":"dropout",
+      "rate":0.5
+    },
+    {
+      "name":"mat_mul",
+      "height":16,
+      "width":12,
+      "decay":"false"
+    },
+    {
+      "name":"graph_sum"
+    },
+    {
+      "name":"relu"
+    },
+    {
+      "name":"dropout",
+      "rate":0.5
+    },
+    {
+      "name": "mat_mul",
+      "height": 12,
+      "width": "out_dim",
+      "decay": "false"
+    },
+    {
+      "name": "graph_sum"
+    },
+    {
+      "name":"cross_entropy"
+    }
+  ]
+}
