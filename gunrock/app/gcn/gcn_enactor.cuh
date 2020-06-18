@@ -76,7 +76,7 @@ struct GCNIterationLoop
     auto &w0 = data_slice.w0;
     auto &penalty = data_slice.penalty;
     auto &truth = data_slice.truth;
-    auto &out = data_slice.AAxw0w1;
+    auto &out = data_slice.out;
     auto &cnt = data_slice.cnt;
     auto &out_dim = data_slice.out_dim;
     auto &wrong = data_slice.wrong;
@@ -187,8 +187,8 @@ struct GCNIterationLoop
     auto &wrong = data_slice.wrong;
     auto &out_dim = data_slice.out_dim;
     auto &cnt = data_slice.cnt;
-    auto &out = data_slice.AAxw0w1;
-    auto &w0 = data_slice.w0;
+    auto &out = data_slice.out;
+    auto &w0 = *data_slice.w_arr[1];
     auto &truth = data_slice.truth;
     auto &modules = data_slice.modules;
 

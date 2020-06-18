@@ -122,6 +122,7 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
     // std::vector<string> inputs_name;
     std::vector<Array*> w;
     std::vector<Array*> w_grad;
+    Array out;
     curandGenerator_t gen;
     util::GpuTimer timer;
     float tot_time = 0, fw_dropout = 0, fw_sprmul = 0, fw_matmul = 0, fw_graphsum = 0, fw_relu = 0, fw_loss = 0;
@@ -253,6 +254,9 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
         inputs[i] = input;
         inputs_grad[i] = input_grad;
       }
+      // Replace out with contents of last input, then make last input point to it
+      out = *inputs[8];
+      inputs[8] = &out;
 
       curandCreateGenerator (&gen, CURAND_RNG_PSEUDO_XORWOW);
       for (int i = 0; i < 8; i++) {
@@ -264,20 +268,17 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
           std::string num = std::to_string(w.size());
           w_curr->SetName("w" + num);
           w_grad_curr->SetName("w" + num + "_grad");
-          // TODO: change dimension
           GUARD_CU(w_curr->Allocate(dim[i] * dim[i+1]))
           GUARD_CU(w_grad_curr->Allocate(dim[i] * dim[i+1]))
-          printf("%d\n", dim[i]);
-          printf("%d\n", dim[i+1]);
-          printf("%d\n", w_curr->GetSize());
-          printf("%d\n", w_curr->GetSetted());
-          curandGenerateUniformDouble(gen, w_curr->GetPointer(util::DEVICE), i == 1 ? w_curr->GetSize() : w_curr->GetSetted());
+          printf("%d %d %d\n", in_dim, hid_dim, out_dim);
+          printf("%d %d\n", dim[i], dim[i+1]);
+          printf("%d %d\n", w_curr->GetSize(), w_curr->GetSetted());
+          curandGenerateUniformDouble(gen, w_curr->GetPointer(util::DEVICE), w_curr->GetSize());
 
           ValueT range = sqrt(6.0 / (dim[i] + dim[i+1]));
-          GUARD_CU (w_curr->ForEach([range]
-                        __host__ __device__(ValueT &x) {
-                          x = (x - 0.5) * range * 2;
-                        }))
+          GUARD_CU(w_curr->ForEach([range] __host__ __device__(ValueT &x) {
+            x = (x - 0.5) * range * 2;
+          }))
 
           w_arr[i] = w_curr;
           w_grad_arr[i] = w_grad_curr;
@@ -286,24 +287,19 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
         }
       }
 
-      for (int i = 0; i < 4; i++) {
+      for (int i = 0; i < 8; i++) {
         module *m;
         switch (layers[i]) {
           case 0: m = new dropout<SizeT, ValueT>(*inputs[i], inputs_grad[i], 0.5, &gen, &fw_dropout, &bw_dropout); break;
           case 1: m = new sprmul<SizeT, ValueT, SpmatT>(parameters, x, *w_arr[i], *w_grad_arr[i], *inputs[i+1], *inputs_grad[i+1], dim[i], dim[i+1], &fw_sprmul, &bw_sprmul); break;
           case 2: m = new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, *inputs[i], *inputs_grad[i], *inputs[i+1], *inputs_grad[i+1], dim[i], &fw_graphsum, &bw_graphsum); break;
           case 3: m = new relu<SizeT, ValueT>(*inputs[i], *inputs_grad[i], num_nodes * dim[i], &fw_relu, &bw_relu); break;
-          case 4: m = new mat_mul<SizeT, ValueT>(*inputs[i], *inputs_grad[i], *w_arr[i], *w_grad_arr[i], *inputs[i], *inputs_grad[i+1], num_nodes, dim[i], dim[i+1], &fw_matmul, &bw_matmul); break;
+          case 4: m = new mat_mul<SizeT, ValueT>(*inputs[i], *inputs_grad[i], *w_arr[i], *w_grad_arr[i], *inputs[i+1], *inputs_grad[i+1], num_nodes, dim[i], dim[i+1], &fw_matmul, &bw_matmul); break;
           case 5: m = new cross_entropy<SizeT, ValueT, GraphT>(parameters, *inputs[i], *inputs_grad[i], truth, num_nodes, dim[i], &fw_loss); break;
           default: m = nullptr; break;
         }
         modules.push_back(m);
       }
-
-      modules.push_back(new dropout<SizeT, ValueT>(*inputs[4], inputs_grad[4], 0.5, &gen, &fw_dropout, &bw_dropout));
-      modules.push_back(new mat_mul<SizeT, ValueT>(*inputs[5], *inputs_grad[5], w1, w1_grad, Axw0w1, Axw0w1_grad, num_nodes, hid_dim, out_dim, &fw_matmul, &bw_matmul));
-      modules.push_back(new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, Axw0w1, Axw0w1_grad, AAxw0w1, AAxw0w1_grad, out_dim, &fw_graphsum, &bw_graphsum));
-      modules.push_back(new cross_entropy<SizeT, ValueT, GraphT>(parameters, AAxw0w1, AAxw0w1_grad, truth, num_nodes, out_dim, &fw_loss));
 
       x_val = static_cast<sprmul<SizeT, ValueT, SpmatT>*>(modules[1])->problem->
           data_slices[0][0].sub_graph[0].SpmatT::CsrT::edge_values;
@@ -315,9 +311,8 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
       }, x.edge_values.GetSize(), util::DEVICE))
 
       for (int i = 0; i < w.size(); i++) {
-        vars.emplace_back(*w[i], *w_grad[i], i == 0 /* to be read from json */);
+        vars.emplace_back(*w[i], *w_grad[i], i == 0 /* TODO: to be read from json */);
       }
-      vars.emplace_back(w1, w1_grad, false);
 
       GUARD_CU(sub_graph.Move(util::HOST, target, this->stream));
       return retval;
@@ -390,10 +385,10 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
       // Set device
       if (target == util::DEVICE) {
         GUARD_CU(util::SetDevice(this->gpu_idx[0]));
-        GUARD_CU (data_slice.w0.SetPointer(_w0, data_slice.in_dim * data_slice.hid_dim))
-        GUARD_CU (data_slice.w0.Move(util::DEVICE, util::HOST))
-        GUARD_CU (data_slice.w1.SetPointer(_w1, data_slice.out_dim * data_slice.hid_dim))
-        GUARD_CU (data_slice.w1.Move(util::DEVICE, util::HOST))
+        GUARD_CU (data_slice.w_arr[1]->SetPointer(_w0, data_slice.in_dim * data_slice.hid_dim))
+        GUARD_CU (data_slice.w_arr[1]->Move(util::DEVICE, util::HOST))
+        GUARD_CU (data_slice.w_arr[5]->SetPointer(_w1, data_slice.out_dim * data_slice.hid_dim))
+        GUARD_CU (data_slice.w_arr[5]->Move(util::DEVICE, util::HOST))
       }
     }
 
