@@ -121,7 +121,7 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
     Array* inputs[9];
     Array* inputs_grad[9];
     int dim[9];
-    // std::vector<string> inputs_name;
+    std::string inputs_name[9];
     std::vector<Array*> w;
     std::vector<Array*> w_grad;
     Array out;
@@ -260,6 +260,8 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
       out = *inputs[8];
       inputs[8] = &out;
 
+      std::string array_name = "x";
+      inputs_name[0] = array_name;
       curandCreateGenerator (&gen, CURAND_RNG_PSEUDO_XORWOW);
       for (int i = 0; i < 8; i++) {
         enum layerType layer = layers[i];
@@ -284,6 +286,30 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
           w.push_back(w_curr);
           w_grad.push_back(w_grad_curr);
         }
+
+        switch (layer) {
+          case DROPOUT:
+          case RELU:
+          case CROSS_ENTROPY:
+            break;
+          case SPR_MUL:
+          case MAT_MUL:
+            array_name += "w" + std::to_string(w.size() - 1);
+            break;
+          case GRAPH_SUM:
+            array_name = "A" + array_name;
+            break;
+        }
+        inputs_name[i + 1] = array_name;
+
+        if (inputs[i + 1] != inputs[0]) {
+          inputs[i + 1]->SetName(array_name);
+          inputs_grad[i + 1]->SetName(array_name + "_grad");
+        }
+      }
+
+      for (std::string name : inputs_name) {
+        printf("%s\n", name.c_str());
       }
 
       for (int i = 0; i < 8; i++) {
