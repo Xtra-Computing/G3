@@ -112,6 +112,9 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
     util::Array1D<SizeT, int> truth, wrong, cnt, label, split;
     Array penalty, w0, xw0, Axw0, Axw0w1, AAxw0w1, w1;
     Array w0_grad, xw0_grad, Axw0_grad, Axw0w1_grad, AAxw0w1_grad, w1_grad, in_feature, x_val;
+    int layers[2] {0, 1};
+    Array result[2];
+    Array result_grad[2];
     curandGenerator_t gen;
     util::GpuTimer timer;
     float tot_time = 0, fw_dropout = 0, fw_sprmul = 0, fw_matmul = 0, fw_graphsum = 0, fw_relu = 0, fw_loss = 0;
@@ -234,8 +237,19 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
       ))
 
       Array *dummy = nullptr;
-      modules.push_back(new dropout<SizeT, ValueT>(x.edge_values, dummy, 0.5, &gen, &fw_dropout, &bw_dropout));
-      modules.push_back(new sprmul<SizeT, ValueT, SpmatT>(parameters, x, w0, w0_grad, xw0, xw0_grad, in_dim, hid_dim, &fw_sprmul, &bw_sprmul));
+      for (int i = 0; i < 2; i++) {
+        switch (layers[i]) {
+          case 0:
+            modules.push_back(new dropout<SizeT, ValueT>(x.edge_values, dummy, 0.5, &gen, &fw_dropout, &bw_dropout));
+            break;
+          case 1:
+            modules.push_back(new sprmul<SizeT, ValueT, SpmatT>(parameters, x, w0, w0_grad, xw0, xw0_grad, in_dim, hid_dim, &fw_sprmul, &bw_sprmul));
+            break;
+          default:
+            break;
+        }
+      }
+
       modules.push_back(new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, xw0, xw0_grad, Axw0, Axw0_grad, hid_dim, &fw_graphsum, &bw_graphsum));
       modules.push_back(new relu<SizeT, ValueT>(Axw0, Axw0_grad, num_nodes * hid_dim, &fw_relu, &bw_relu));
       modules.push_back(new dropout<SizeT, ValueT>(Axw0, &Axw0_grad, 0.5, &gen, &fw_dropout, &bw_dropout));
