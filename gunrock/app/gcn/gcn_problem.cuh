@@ -112,9 +112,16 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
     util::Array1D<SizeT, int> truth, wrong, cnt, label, split;
     Array penalty, w0, xw0, Axw0, Axw0w1, AAxw0w1, w1;
     Array w0_grad, xw0_grad, Axw0_grad, Axw0w1_grad, AAxw0w1_grad, w1_grad, in_feature, x_val;
-    int layers[2] {0, 1};
-    Array result[2];
-    Array result_grad[2];
+    int layers[8] {0, 1, 2, 3, 0, 4, 2, 5};
+    // w pointer arrays for each layer, will not be initialised if layer does not have it
+    Array* w_arr[8];
+    Array* w_grad_arr[8];
+    Array* inputs[9];
+    Array* inputs_grad[9];
+    int dim[9];
+    // std::vector<string> inputs_name;
+    std::vector<Array*> w;
+    std::vector<Array*> w_grad;
     curandGenerator_t gen;
     util::GpuTimer timer;
     float tot_time = 0, fw_dropout = 0, fw_sprmul = 0, fw_matmul = 0, fw_graphsum = 0, fw_relu = 0, fw_loss = 0;
@@ -217,43 +224,84 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
       GUARD_CU (label.Move(util::HOST, util::DEVICE))
 //      GUARD_CU (truth.Print ())
 
+      // to be read from json
+      dim[0] = in_dim;
+      dim[1] = in_dim;
+      dim[2] = hid_dim;
+      dim[3] = hid_dim;
+      dim[4] = hid_dim;
+      dim[5] = hid_dim;
+      dim[6] = out_dim;
+      dim[7] = out_dim;
+      dim[8] = out_dim;
+
+      Array* input = &x.edge_values;
+      Array* input_grad = nullptr;
+      inputs[0] = input;
+      inputs_grad[0] = input_grad;
+
+      for (int i = 1; i < 9; i++) {
+        // The input to the current i is the output from the previous i
+        // If previous i is transformative a new Array is needed
+        int layer = layers[i-1];
+        if (layer == 1 || layer == 2 || layer == 4) {
+          input = new Array;
+          input_grad = new Array;
+          GUARD_CU(input->Allocate(num_nodes * dim[i]))
+          GUARD_CU(input_grad->Allocate(num_nodes * dim[i]))
+        }
+        inputs[i] = input;
+        inputs_grad[i] = input_grad;
+      }
 
       curandCreateGenerator (&gen, CURAND_RNG_PSEUDO_XORWOW);
-      curandGenerateUniformDouble(gen, w0.GetPointer(util::DEVICE), w0.GetSize ());
+      for (int i = 0; i < 8; i++) {
+        int layer = layers[i];
+        if (layer == 1 || layer == 4) {
+          Array *w_curr = new Array;
+          Array *w_grad_curr = new Array;
 
-      ValueT range = sqrt (6.0 / (in_dim + hid_dim));
-      GUARD_CU (w0.ForEach (
-          [range]__host__ __device__(ValueT &x) {
-            x = (x - 0.5) * range * 2;
-          }
-      ))
-      curandGenerateUniformDouble(gen, w1.GetPointer(util::DEVICE), w1.GetSetted ());
+          std::string num = std::to_string(w.size());
+          w_curr->SetName("w" + num);
+          w_grad_curr->SetName("w" + num + "_grad");
+          // TODO: change dimension
+          GUARD_CU(w_curr->Allocate(dim[i] * dim[i+1]))
+          GUARD_CU(w_grad_curr->Allocate(dim[i] * dim[i+1]))
+          printf("%d\n", dim[i]);
+          printf("%d\n", dim[i+1]);
+          printf("%d\n", w_curr->GetSize());
+          printf("%d\n", w_curr->GetSetted());
+          curandGenerateUniformDouble(gen, w_curr->GetPointer(util::DEVICE), i == 1 ? w_curr->GetSize() : w_curr->GetSetted());
 
-      range = sqrt (6.0 / (out_dim + hid_dim));
-      GUARD_CU (w1.ForEach (
-          [range]__host__ __device__(ValueT &x) {
-            x = (x - 0.5) * range * 2;
-          }
-      ))
+          ValueT range = sqrt(6.0 / (dim[i] + dim[i+1]));
+          GUARD_CU (w_curr->ForEach([range]
+                        __host__ __device__(ValueT &x) {
+                          x = (x - 0.5) * range * 2;
+                        }))
 
-      Array *dummy = nullptr;
-      for (int i = 0; i < 2; i++) {
-        switch (layers[i]) {
-          case 0:
-            modules.push_back(new dropout<SizeT, ValueT>(x.edge_values, dummy, 0.5, &gen, &fw_dropout, &bw_dropout));
-            break;
-          case 1:
-            modules.push_back(new sprmul<SizeT, ValueT, SpmatT>(parameters, x, w0, w0_grad, xw0, xw0_grad, in_dim, hid_dim, &fw_sprmul, &bw_sprmul));
-            break;
-          default:
-            break;
+          w_arr[i] = w_curr;
+          w_grad_arr[i] = w_grad_curr;
+          w.push_back(w_curr);
+          w_grad.push_back(w_grad_curr);
         }
       }
 
-      modules.push_back(new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, xw0, xw0_grad, Axw0, Axw0_grad, hid_dim, &fw_graphsum, &bw_graphsum));
-      modules.push_back(new relu<SizeT, ValueT>(Axw0, Axw0_grad, num_nodes * hid_dim, &fw_relu, &bw_relu));
-      modules.push_back(new dropout<SizeT, ValueT>(Axw0, &Axw0_grad, 0.5, &gen, &fw_dropout, &bw_dropout));
-      modules.push_back(new mat_mul<SizeT, ValueT>(Axw0, Axw0_grad, w1, w1_grad, Axw0w1, Axw0w1_grad, num_nodes, hid_dim, out_dim, &fw_matmul, &bw_matmul));
+      for (int i = 0; i < 4; i++) {
+        module *m;
+        switch (layers[i]) {
+          case 0: m = new dropout<SizeT, ValueT>(*inputs[i], inputs_grad[i], 0.5, &gen, &fw_dropout, &bw_dropout); break;
+          case 1: m = new sprmul<SizeT, ValueT, SpmatT>(parameters, x, *w_arr[i], *w_grad_arr[i], *inputs[i+1], *inputs_grad[i+1], dim[i], dim[i+1], &fw_sprmul, &bw_sprmul); break;
+          case 2: m = new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, *inputs[i], *inputs_grad[i], *inputs[i+1], *inputs_grad[i+1], dim[i], &fw_graphsum, &bw_graphsum); break;
+          case 3: m = new relu<SizeT, ValueT>(*inputs[i], *inputs_grad[i], num_nodes * dim[i], &fw_relu, &bw_relu); break;
+          case 4: m = new mat_mul<SizeT, ValueT>(*inputs[i], *inputs_grad[i], *w_arr[i], *w_grad_arr[i], *inputs[i], *inputs_grad[i+1], num_nodes, dim[i], dim[i+1], &fw_matmul, &bw_matmul); break;
+          case 5: m = new cross_entropy<SizeT, ValueT, GraphT>(parameters, *inputs[i], *inputs_grad[i], truth, num_nodes, dim[i], &fw_loss); break;
+          default: m = nullptr; break;
+        }
+        modules.push_back(m);
+      }
+
+      modules.push_back(new dropout<SizeT, ValueT>(*inputs[4], inputs_grad[4], 0.5, &gen, &fw_dropout, &bw_dropout));
+      modules.push_back(new mat_mul<SizeT, ValueT>(*inputs[5], *inputs_grad[5], w1, w1_grad, Axw0w1, Axw0w1_grad, num_nodes, hid_dim, out_dim, &fw_matmul, &bw_matmul));
       modules.push_back(new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, Axw0w1, Axw0w1_grad, AAxw0w1, AAxw0w1_grad, out_dim, &fw_graphsum, &bw_graphsum));
       modules.push_back(new cross_entropy<SizeT, ValueT, GraphT>(parameters, AAxw0w1, AAxw0w1_grad, truth, num_nodes, out_dim, &fw_loss));
 
@@ -266,7 +314,9 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
         dst = src;
       }, x.edge_values.GetSize(), util::DEVICE))
 
-      vars.emplace_back(w0, w0_grad, true);
+      for (int i = 0; i < w.size(); i++) {
+        vars.emplace_back(*w[i], *w_grad[i], i == 0 /* to be read from json */);
+      }
       vars.emplace_back(w1, w1_grad, false);
 
       GUARD_CU(sub_graph.Move(util::HOST, target, this->stream));
