@@ -294,8 +294,8 @@ for layer in layers:
   cog.outl('GUARD_CU(' + varname + '.Allocate(' + 'num_nodes * ' + str(width) + '))')
   cog.outl('GUARD_CU(' + varname + '_grad.Allocate(' + 'num_nodes * ' + str(width) + '))')
 ]]]*/
-GUARD_CU(w0.Allocate(num_nodes * 16))
-GUARD_CU(w0_grad.Allocate(num_nodes * 16))
+GUARD_CU(w0.Allocate(in_dim * 16))
+GUARD_CU(w0_grad.Allocate(in_dim * 16))
 GUARD_CU(w1.Allocate(16 * out_dim))
 GUARD_CU(w1_grad.Allocate(16 * out_dim))
 GUARD_CU(xw0.Allocate(num_nodes * 16))
@@ -339,7 +339,7 @@ GUARD_CU(AAxw0w1_grad.Allocate(num_nodes * out_dim))
         cog.outl('))')
       ]]]*/
       curandGenerateUniformDouble(gen, w0.GetPointer(util::DEVICE), w0.GetSize ());
-      range = sqrt (6.0 / (num_nodes + 16));
+      range = sqrt (6.0 / (in_dim + 16));
       GUARD_CU (w0.ForEach (
       [range]__host__ __device__(ValueT &x) {
       x = (x - 0.5) * range * 2;
@@ -420,7 +420,7 @@ GUARD_CU(AAxw0w1_grad.Allocate(num_nodes * out_dim))
           cog.outl('static_cast<dropout<SizeT, ValueT>*>(modules[' + str(i - 2) + '])->data = x_val;')
       ]]]*/
       modules.push_back(new dropout<SizeT, ValueT>(x.edge_values, dummy, 0.5, &gen, &fw_dropout, &bw_dropout));
-      modules.push_back(new sprmul<SizeT, ValueT, SpmatT>(parameters, x, w0, w0_grad, xw0, xw0_grad, num_nodes, 16, &fw_sprmul, &bw_sprmul));
+      modules.push_back(new sprmul<SizeT, ValueT, SpmatT>(parameters, x, w0, w0_grad, xw0, xw0_grad, in_dim, 16, &fw_sprmul, &bw_sprmul));
       x_val = static_cast<sprmul<SizeT, ValueT, SpmatT>*>(modules[1])->problem->
       data_slices[0][0].sub_graph[0].SpmatT::CsrT::edge_values;
       static_cast<dropout<SizeT, ValueT>*>(modules[0])->data = x_val;

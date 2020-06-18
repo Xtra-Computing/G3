@@ -10,7 +10,7 @@
     },
     {
       "name":"sprmul",
-      "height":"num_nodes",
+      "height":"in_dim",
       "width":"out_dim",
       "decay":"true"
     },
