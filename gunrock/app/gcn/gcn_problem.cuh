@@ -114,6 +114,7 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
     util::Array1D<SizeT, int> truth, wrong, cnt, label, split;
     Array penalty, w0, xw0, Axw0, Axw0w1, AAxw0w1, w1;
     Array w0_grad, xw0_grad, Axw0_grad, Axw0w1_grad, AAxw0w1_grad, w1_grad, in_feature, x_val;
+    SpmatT x_work;
     enum layerType layers[8] {DROPOUT, SPR_MUL, GRAPH_SUM, RELU, DROPOUT, MAT_MUL, GRAPH_SUM, CROSS_ENTROPY};
     // w pointer arrays for each layer, will not be initialised if layer does not have it
     Array* w_arr[8];
@@ -238,7 +239,9 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
       dim[7] = out_dim;
       dim[8] = out_dim;
 
-      Array* input = &x.edge_values;
+      x_work = x;
+      GUARD_CU(x_work.Move(util::HOST, target, this->stream));
+      Array* input = &x_work.edge_values;
       Array* input_grad = nullptr;
       inputs[0] = input;
       inputs_grad[0] = input_grad;
@@ -316,7 +319,7 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
         module *m;
         switch (layers[i]) {
           case DROPOUT: m = new dropout<SizeT, ValueT>(*inputs[i], inputs_grad[i], 0.5, &gen, &fw_dropout, &bw_dropout); break;
-          case SPR_MUL: m = new sprmul<SizeT, ValueT, SpmatT>(parameters, x, *w_arr[i], *w_grad_arr[i], *inputs[i+1], *inputs_grad[i+1], dim[i], dim[i+1], &fw_sprmul, &bw_sprmul); break;
+          case SPR_MUL: m = new sprmul<SizeT, ValueT, SpmatT>(parameters, x_work, *w_arr[i], *w_grad_arr[i], *inputs[i+1], *inputs_grad[i+1], dim[i], dim[i+1], &fw_sprmul, &bw_sprmul); break;
           case GRAPH_SUM: m = new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, *inputs[i], *inputs_grad[i], *inputs[i+1], *inputs_grad[i+1], dim[i], &fw_graphsum, &bw_graphsum); break;
           case RELU: m = new relu<SizeT, ValueT>(*inputs[i], *inputs_grad[i], num_nodes * dim[i], &fw_relu, &bw_relu); break;
           case MAT_MUL: m = new mat_mul<SizeT, ValueT>(*inputs[i], *inputs_grad[i], *w_arr[i], *w_grad_arr[i], *inputs[i+1], *inputs_grad[i+1], num_nodes, dim[i], dim[i+1], &fw_matmul, &bw_matmul); break;
@@ -326,11 +329,9 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
         modules.push_back(m);
       }
 
-      x_val = static_cast<sprmul<SizeT, ValueT, SpmatT>*>(modules[1])->problem->
-          data_slices[0][0].sub_graph[0].SpmatT::CsrT::edge_values;
-      static_cast<dropout<SizeT, ValueT>*>(modules[0])->data = x_val;
+      x_val = x_work.edge_values;
 
-      GUARD_CU(x.edge_values.ForEach(in_feature,
+      GUARD_CU(x_work.edge_values.ForEach(in_feature,
           []__host__ __device__(ValueT &src, ValueT &dst) {
         dst = src;
       }, x.edge_values.GetSize(), util::DEVICE))
