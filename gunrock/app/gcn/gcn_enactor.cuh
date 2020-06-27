@@ -73,7 +73,7 @@ struct GCNIterationLoop
     auto &eps = data_slice.eps, &learning_rate = data_slice.learning_rate, &beta1 = data_slice.beta1,
     &beta2 = data_slice.beta2, &weight_decay = data_slice.weight_decay;
     auto &training = data_slice.training;
-    auto &w0 = data_slice.w0;
+    auto &w0 = data_slice.w[0];
     auto &penalty = data_slice.penalty;
     auto &truth = data_slice.truth;
     auto &out = data_slice.out;
