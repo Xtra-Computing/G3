@@ -82,14 +82,14 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
   typedef typename app::TestGraph<VertexT, SizeT, ValueT, graph::HAS_CSR | graph::HAS_EDGE_VALUES>
       SpmatT;
 
-  enum layerType { DROPOUT, SPR_MUL, GRAPH_SUM, RELU, MAT_MUL, CROSS_ENTROPY };
-  struct layerParam {
+  enum LayerType { INPUT, DROPOUT, SPR_MUL, GRAPH_SUM, RELU, MAT_MUL, CROSS_ENTROPY };
+  struct LayerParam {
     Array* output, output_grad;
-    enum layerType type;
+    enum LayerType type;
     int dim;
     Array* w, w_grad;
     bool decay;
-    layerParam(int dim) : dim(dim) {}
+    LayerParam(int dim) : dim(dim) {}
   };
 
   // Helper structures
@@ -124,7 +124,7 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
     Array penalty, in_feature, x_val;
     SpmatT x_work;
     const char* json = " {\n  \"type\":\"custome\",\n  \"layers\":[\n    {\n      \"name\":\"input\"\n    },\n    {\n      \"name\":\"dropout\",\n      \"rate\":0.5\n    },\n    {\n      \"name\":\"sprmul\",\n      \"height\":\"num_nodes\",\n      \"width\":16,\n      \"decay\":\"true\"\n    },\n    {\n      \"name\":\"graph_sum\"\n    },\n    {\n      \"name\":\"relu\"\n    },\n    {\n      \"name\":\"dropout\",\n      \"rate\":0.5\n    },\n    {\n      \"name\":\"mat_mul\",\n      \"height\":16,\n      \"width\":\"out_dim\",\n      \"decay\":\"false\"\n    },\n    {\n      \"name\":\"graph_sum\"\n    },\n    {\n      \"name\":\"cross_entropy\"\n    }\n  ]\n}\n";
-    enum layerType layers[8] {DROPOUT, SPR_MUL, GRAPH_SUM, RELU, DROPOUT, MAT_MUL, GRAPH_SUM, CROSS_ENTROPY};
+    enum LayerType layers[8] {DROPOUT, SPR_MUL, GRAPH_SUM, RELU, DROPOUT, MAT_MUL, GRAPH_SUM, CROSS_ENTROPY};
     // w pointer arrays for each layer, will not be initialised if layer does not have it
     Array* w_arr[8];
     Array* w_grad_arr[8];
@@ -133,7 +133,7 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
     std::string inputs_name[9];
     std::vector<Array*> w;
     std::vector<Array*> w_grad;
-    std::vector<layerParam> layerParams;
+    std::vector<LayerParam> layer_params;
     Array out;
     curandGenerator_t gen;
     util::GpuTimer timer;
@@ -217,6 +217,22 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
       d.Parse(json);
       int curDim = in_dim;
       for (auto &v : d["layers"].GetArray()) {
+        bool unknownLayer = false;
+        std::string name = v["name"].GetString();
+        LayerType type;
+        if (name.compare("input") == 0) type = INPUT;
+        else if (name.compare("dropout") == 0) type = DROPOUT;
+        else if (name.compare("sprmul") == 0) type = SPR_MUL;
+        else if (name.compare("graph_sum") == 0) type = GRAPH_SUM;
+        else if (name.compare("relu") == 0) type = RELU;
+        else if (name.compare("dropout") == 0) type = DROPOUT;
+        else if (name.compare("mat_mul") == 0) type = MAT_MUL;
+        else if (name.compare("cross_entropy") == 0) type = CROSS_ENTROPY;
+        else {
+          std::cout << "Unknown layer " << name << std::endl;
+          unknownLayer = true;
+          type = INPUT;
+        }
         if (v.HasMember("width")) {
           auto &width = v["width"];
           if (width.IsInt()) {
@@ -226,11 +242,15 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
             curDim = out_dim;
           }
         }
-        layerParams.push_back(layerParam(curDim));
+        if (!unknownLayer) {
+          LayerParam p = LayerParam(curDim);
+          p.type = type;
+          layer_params.push_back(p);
+        }
       }
 
-      for (layerParam p : layerParams) {
-        printf("%d\n", p.dim);
+      for (LayerParam p : layer_params) {
+        std::cout << p.type << " " << p.dim << std::endl;
       }
 
       x_work = x;
@@ -240,15 +260,15 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
       inputs[0] = input;
       inputs_grad[0] = input_grad;
 
-      for (int i = 1; i < 9; i++) {
-        // The input to the current i is the output from the previous i
-        // If previous i is transformative a new Array is needed
-        enum layerType layer = layers[i-1];
-        if (layer == SPR_MUL || layer == GRAPH_SUM || layer == MAT_MUL) {
+      for (int i = 1; i < layer_params.size(); i++) {
+        LayerParam layer = layer_params[i];
+        enum LayerType type = layer.type;
+        if (type == SPR_MUL || type == GRAPH_SUM || type == MAT_MUL) {
+          // If layer is transformative new Arrays are needed
           input = new Array;
           input_grad = new Array;
-          GUARD_CU(input->Allocate(num_nodes * layerParams[i].dim))
-          GUARD_CU(input_grad->Allocate(num_nodes * layerParams[i].dim))
+          GUARD_CU(input->Allocate(num_nodes * layer.dim))
+          GUARD_CU(input_grad->Allocate(num_nodes * layer.dim))
         }
         inputs[i] = input;
         inputs_grad[i] = input_grad;
@@ -260,31 +280,34 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
       std::string array_name = "x";
       inputs_name[0] = array_name;
       curandCreateGenerator (&gen, CURAND_RNG_PSEUDO_XORWOW);
-      for (int i = 0; i < 8; i++) {
-        enum layerType layer = layers[i];
-        if (layer == SPR_MUL || layer == MAT_MUL) {
+      for (int i = 1; i < layer_params.size(); i++) {
+        // weights array allocation
+        LayerParam prev = layer_params[i - 1];
+        LayerParam curr = layer_params[i];
+        enum LayerType type = curr.type;
+        if (type == SPR_MUL || type == MAT_MUL) {
           Array *w_curr = new Array;
           Array *w_grad_curr = new Array;
 
           std::string num = std::to_string(w.size());
           w_curr->SetName("w" + num);
           w_grad_curr->SetName("w" + num + "_grad");
-          GUARD_CU(w_curr->Allocate(layerParams[i].dim * layerParams[i+1].dim))
-          GUARD_CU(w_grad_curr->Allocate(layerParams[i].dim * layerParams[i+1].dim))
+          GUARD_CU(w_curr->Allocate(prev.dim * curr.dim))
+          GUARD_CU(w_grad_curr->Allocate(prev.dim * curr.dim))
           curandGenerateUniformDouble(gen, w_curr->GetPointer(util::DEVICE), w_curr->GetSize());
 
-          ValueT range = sqrt(6.0 / (layerParams[i].dim + layerParams[i+1].dim));
+          ValueT range = sqrt(6.0 / (prev.dim + curr.dim));
           GUARD_CU(w_curr->ForEach([range] __host__ __device__(ValueT &x) {
             x = (x - 0.5) * range * 2;
           }))
 
-          w_arr[i] = w_curr;
-          w_grad_arr[i] = w_grad_curr;
+          w_arr[i - 1] = w_curr;
+          w_grad_arr[i - 1] = w_grad_curr;
           w.push_back(w_curr);
           w_grad.push_back(w_grad_curr);
         }
 
-        switch (layer) {
+        switch (type) {
           case DROPOUT:
           case RELU:
           case CROSS_ENTROPY:
@@ -297,11 +320,11 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
             array_name = "A" + array_name;
             break;
         }
-        inputs_name[i + 1] = array_name;
+        inputs_name[i] = array_name;
 
-        if (inputs[i + 1] != inputs[0]) {
-          inputs[i + 1]->SetName(array_name);
-          inputs_grad[i + 1]->SetName(array_name + "_grad");
+        if (inputs[i] != inputs[0]) {
+          inputs[i]->SetName(array_name);
+          inputs_grad[i]->SetName(array_name + "_grad");
         }
       }
 
@@ -309,15 +332,17 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
         std::cout << name << std::endl;
       }
 
-      for (int i = 0; i < 8; i++) {
+      for (int i = 1; i < layer_params.size(); i++) {
+        LayerParam prev = layer_params[i - 1];
+        LayerParam curr = layer_params[i];
         module *m;
-        switch (layers[i]) {
-          case DROPOUT: m = new dropout<SizeT, ValueT>(*inputs[i], inputs_grad[i], 0.5, &gen, &fw_dropout, &bw_dropout); break;
-          case SPR_MUL: m = new sprmul<SizeT, ValueT, SpmatT>(parameters, x_work, *w_arr[i], *w_grad_arr[i], *inputs[i+1], *inputs_grad[i+1], layerParams[i].dim, layerParams[i+1].dim, &fw_sprmul, &bw_sprmul); break;
-          case GRAPH_SUM: m = new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, *inputs[i], *inputs_grad[i], *inputs[i+1], *inputs_grad[i+1], layerParams[i].dim, &fw_graphsum, &bw_graphsum); break;
-          case RELU: m = new relu<SizeT, ValueT>(*inputs[i], *inputs_grad[i], num_nodes * layerParams[i].dim, &fw_relu, &bw_relu); break;
-          case MAT_MUL: m = new mat_mul<SizeT, ValueT>(*inputs[i], *inputs_grad[i], *w_arr[i], *w_grad_arr[i], *inputs[i+1], *inputs_grad[i+1], num_nodes, layerParams[i].dim, layerParams[i+1].dim, &fw_matmul, &bw_matmul); break;
-          case CROSS_ENTROPY: m = new cross_entropy<SizeT, ValueT, GraphT>(parameters, *inputs[i], *inputs_grad[i], truth, num_nodes, layerParams[i].dim, &fw_loss); break;
+        switch (curr.type) {
+          case DROPOUT: m = new dropout<SizeT, ValueT>(*inputs[i-1], inputs_grad[i-1], 0.5, &gen, &fw_dropout, &bw_dropout); break;
+          case SPR_MUL: m = new sprmul<SizeT, ValueT, SpmatT>(parameters, x_work, *w_arr[i-1], *w_grad_arr[i-1], *inputs[i], *inputs_grad[i], prev.dim, curr.dim, &fw_sprmul, &bw_sprmul); break;
+          case GRAPH_SUM: m = new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, *inputs[i-1], *inputs_grad[i-1], *inputs[i], *inputs_grad[i], prev.dim, &fw_graphsum, &bw_graphsum); break;
+          case RELU: m = new relu<SizeT, ValueT>(*inputs[i-1], *inputs_grad[i-1], num_nodes * prev.dim, &fw_relu, &bw_relu); break;
+          case MAT_MUL: m = new mat_mul<SizeT, ValueT>(*inputs[i-1], *inputs_grad[i-1], *w_arr[i-1], *w_grad_arr[i-1], *inputs[i], *inputs_grad[i], num_nodes, prev.dim, curr.dim, &fw_matmul, &bw_matmul); break;
+          case CROSS_ENTROPY: m = new cross_entropy<SizeT, ValueT, GraphT>(parameters, *inputs[i-1], *inputs_grad[i-1], truth, num_nodes, prev.dim, &fw_loss); break;
           default: m = nullptr; break;
         }
         modules.push_back(m);
