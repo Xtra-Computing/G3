@@ -73,7 +73,7 @@ struct GCNIterationLoop
     auto &eps = data_slice.eps, &learning_rate = data_slice.learning_rate, &beta1 = data_slice.beta1,
     &beta2 = data_slice.beta2, &weight_decay = data_slice.weight_decay;
     auto &training = data_slice.training;
-    auto &w0 = data_slice.w[0];
+    auto &w0 = *data_slice.w_layers[0]->w;
     auto &penalty = data_slice.penalty;
     auto &truth = data_slice.truth;
     auto &out = *data_slice.out;
@@ -188,7 +188,7 @@ struct GCNIterationLoop
     auto &out_dim = data_slice.out_dim;
     auto &cnt = data_slice.cnt;
     auto &out = *data_slice.out;
-    auto &w0 = *data_slice.w_arr[1];
+    auto &w0 = *data_slice.w_layers[0]->w;
     auto &truth = data_slice.truth;
     auto &modules = data_slice.modules;
 
