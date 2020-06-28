@@ -92,8 +92,9 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
 
     Array *output, *output_grad;
     Array *w, *w_grad;
+    LayerParam *prev;
 
-    LayerParam(enum LayerType type, int dim) : type(type), dim(dim) {}
+    LayerParam(LayerParam *prev, enum LayerType type, int dim) : prev(prev), type(type), dim(dim) {}
   };
 
   // Helper structures
@@ -128,12 +129,8 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
     Array penalty, in_feature, x_val;
     SpmatT x_work;
     const char* json = " {\n  \"type\":\"custome\",\n  \"layers\":[\n    {\n      \"name\":\"input\"\n    },\n    {\n      \"name\":\"dropout\",\n      \"rate\":0.5\n    },\n    {\n      \"name\":\"sprmul\",\n      \"height\":\"num_nodes\",\n      \"width\":16,\n      \"decay\":\"true\"\n    },\n    {\n      \"name\":\"graph_sum\"\n    },\n    {\n      \"name\":\"relu\"\n    },\n    {\n      \"name\":\"dropout\",\n      \"rate\":0.5\n    },\n    {\n      \"name\":\"mat_mul\",\n      \"height\":16,\n      \"width\":\"out_dim\",\n      \"decay\":\"false\"\n    },\n    {\n      \"name\":\"graph_sum\"\n    },\n    {\n      \"name\":\"cross_entropy\"\n    }\n  ]\n}\n";
-    // w pointer arrays for each layer, will not be initialised if layer does not have it
-    Array* w_arr[8];
-    Array* w_grad_arr[8];
-    std::vector<Array*> w;
-    std::vector<Array*> w_grad;
     std::vector<LayerParam> layer_params;
+    std::vector<LayerParam *> w_layers;
     Array *out;
     curandGenerator_t gen;
     util::GpuTimer timer;
@@ -243,7 +240,8 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
           }
         }
         if (!unknownLayer) {
-          layer_params.emplace_back(type, curDim);
+          LayerParam *prev = layer_params.empty() ? nullptr : &layer_params.back();
+          layer_params.emplace_back(prev, type, curDim);
         }
       }
 
@@ -280,7 +278,7 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
           Array *w_curr = new Array;
           Array *w_grad_curr = new Array;
 
-          std::string num = std::to_string(w.size());
+          std::string num = std::to_string(w_layers.size());
           w_curr->SetName("w" + num);
           w_grad_curr->SetName("w" + num + "_grad");
           GUARD_CU(w_curr->Allocate(prev.dim * curr.dim))
@@ -292,20 +290,20 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
             x = (x - 0.5) * range * 2;
           }))
 
-          w_arr[i - 1] = w_curr;
-          w_grad_arr[i - 1] = w_grad_curr;
-          w.push_back(w_curr);
-          w_grad.push_back(w_grad_curr);
+          curr.w = w_curr;
+          curr.w_grad = w_grad_curr;
+          w_layers.push_back(&curr);
         }
 
         switch (type) {
+          case INPUT:
           case DROPOUT:
           case RELU:
           case CROSS_ENTROPY:
             break;
           case SPR_MUL:
           case MAT_MUL:
-            array_name += "w" + std::to_string(w.size() - 1);
+            array_name += "w" + std::to_string(w_layers.size() - 1);
             break;
           case GRAPH_SUM:
             array_name = "A" + array_name;
@@ -323,10 +321,10 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
         module *m;
         switch (curr.type) {
           case DROPOUT: m = new dropout<SizeT, ValueT>(*prev.output, prev.output_grad, 0.5, &gen, &fw_dropout, &bw_dropout); break;
-          case SPR_MUL: m = new sprmul<SizeT, ValueT, SpmatT>(parameters, x_work, *w_arr[i-1], *w_grad_arr[i-1], *curr.output, *curr.output_grad, prev.dim, curr.dim, &fw_sprmul, &bw_sprmul); break;
+          case SPR_MUL: m = new sprmul<SizeT, ValueT, SpmatT>(parameters, x_work, *curr.w, *curr.w_grad, *curr.output, *curr.output_grad, prev.dim, curr.dim, &fw_sprmul, &bw_sprmul); break;
           case GRAPH_SUM: m = new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, *prev.output, *prev.output_grad, *curr.output, *curr.output_grad, prev.dim, &fw_graphsum, &bw_graphsum); break;
           case RELU: m = new relu<SizeT, ValueT>(*prev.output, *prev.output_grad, num_nodes * prev.dim, &fw_relu, &bw_relu); break;
-          case MAT_MUL: m = new mat_mul<SizeT, ValueT>(*prev.output, *prev.output_grad, *w_arr[i-1], *w_grad_arr[i-1], *curr.output, *curr.output_grad, num_nodes, prev.dim, curr.dim, &fw_matmul, &bw_matmul); break;
+          case MAT_MUL: m = new mat_mul<SizeT, ValueT>(*prev.output, *prev.output_grad, *curr.w, *curr.w_grad, *curr.output, *curr.output_grad, num_nodes, prev.dim, curr.dim, &fw_matmul, &bw_matmul); break;
           case CROSS_ENTROPY: m = new cross_entropy<SizeT, ValueT, GraphT>(parameters, *prev.output, *prev.output_grad, truth, num_nodes, prev.dim, &fw_loss); break;
           default: m = nullptr; break;
         }
@@ -340,8 +338,9 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
         dst = src;
       }, x.edge_values.GetSize(), util::DEVICE))
 
-      for (int i = 0; i < w.size(); i++) {
-        vars.emplace_back(*w[i], *w_grad[i], i == 0 /* TODO: to be read from json */);
+      for (int i = 0; i < w_layers.size(); i++) {
+        LayerParam &layer = *w_layers[i];
+        vars.emplace_back(*layer.w, *layer.w_grad, i == 0 /* TODO: to be read from json */);
       }
 
       GUARD_CU(sub_graph.Move(util::HOST, target, this->stream));
@@ -404,21 +403,23 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
    */
 
 
-  cudaError_t Extract(ValueT *_w0, ValueT *_w1,
+  cudaError_t Extract(std::vector<ValueT *> _w,
                       util::Location target = util::DEVICE) {
     cudaError_t retval = cudaSuccess;
     SizeT nodes = this->org_graph->nodes;
 
     if (this->num_gpus == 1) {
       auto &data_slice = data_slices[0][0];
+      std::vector<LayerParam *> &w_layers = data_slice.w_layers;
 
       // Set device
       if (target == util::DEVICE) {
         GUARD_CU(util::SetDevice(this->gpu_idx[0]));
-        GUARD_CU (data_slice.w_arr[1]->SetPointer(_w0, data_slice.in_dim * data_slice.hid_dim))
-        GUARD_CU (data_slice.w_arr[1]->Move(util::DEVICE, util::HOST))
-        GUARD_CU (data_slice.w_arr[5]->SetPointer(_w1, data_slice.out_dim * data_slice.hid_dim))
-        GUARD_CU (data_slice.w_arr[5]->Move(util::DEVICE, util::HOST))
+        for (int i = 0; i < w_layers.size(); i++) {
+          LayerParam &layer = *w_layers[i];
+          GUARD_CU(layer.w->SetPointer(_w[i], layer.prev->dim * layer.dim))
+          GUARD_CU(layer.w->Move(util::DEVICE, util::HOST))
+        }
       }
     }
 
