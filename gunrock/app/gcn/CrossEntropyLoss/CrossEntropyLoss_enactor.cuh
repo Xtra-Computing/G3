@@ -117,6 +117,7 @@ struct CorssEntropyLoop
           }
         }, n_nodes, util::DEVICE
     ))
+    max_logits.Release();
 //    max_logits.Print();
 
 //    loss.Print();
