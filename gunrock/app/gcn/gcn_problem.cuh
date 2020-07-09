@@ -89,12 +89,14 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
     enum LayerType type;
     int dim;
     bool decay;
+    float dropoutRate;
 
     Array *output, *output_grad;
     Array *w, *w_grad;
     LayerParam *prev;
 
-    LayerParam(LayerParam *prev, enum LayerType type, int dim) : prev(prev), type(type), dim(dim) {}
+    LayerParam(LayerParam *prev, enum LayerType type, int dim, bool decay, float dropoutRate)
+        : prev(prev), type(type), dim(dim), decay(decay), dropoutRate(dropoutRate) {}
   };
 
   // Helper structures
@@ -128,7 +130,7 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
     util::Array1D<SizeT, int> truth, wrong, cnt, label, split;
     Array penalty, in_feature, x_val;
     SpmatT x_work;
-    const char* json = " {\n  \"type\":\"custome\",\n  \"layers\":[\n    {\n      \"name\":\"input\"\n    },\n    {\n      \"name\":\"dropout\",\n      \"rate\":0.5\n    },\n    {\n      \"name\":\"sprmul\",\n      \"height\":\"num_nodes\",\n      \"width\":16,\n      \"decay\":\"true\"\n    },\n    {\n      \"name\":\"graph_sum\"\n    },\n    {\n      \"name\":\"relu\"\n    },\n    {\n      \"name\":\"dropout\",\n      \"rate\":0.5\n    },\n    {\n      \"name\":\"mat_mul\",\n      \"height\":16,\n      \"width\":\"out_dim\",\n      \"decay\":\"false\"\n    },\n    {\n      \"name\":\"graph_sum\"\n    },\n    {\n      \"name\":\"cross_entropy\"\n    }\n  ]\n}\n";
+    const char* json = " {\n  \"type\":\"custome\",\n  \"layers\":[\n    {\n      \"name\":\"input\"\n    },\n    {\n      \"name\":\"dropout\",\n      \"rate\":0.5\n    },\n    {\n      \"name\":\"sprmul\",\n      \"height\":\"num_nodes\",\n      \"width\":16,\n      \"decay\":true\n    },\n    {\n      \"name\":\"graph_sum\"\n    },\n    {\n      \"name\":\"relu\"\n    },\n    {\n      \"name\":\"dropout\",\n      \"rate\":0.5\n    },\n    {\n      \"name\":\"mat_mul\",\n      \"height\":16,\n      \"width\":\"out_dim\",\n      \"decay\":false\n    },\n    {\n      \"name\":\"graph_sum\"\n    },\n    {\n      \"name\":\"cross_entropy\"\n    }\n  ]\n}\n";
     std::vector<LayerParam> layer_params;
     std::vector<LayerParam *> w_layers;
     Array *out;
@@ -210,6 +212,17 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
       GUARD_CU (label.Move(util::HOST, util::DEVICE))
 //      GUARD_CU (truth.Print ())
 
+      std::ifstream jsonFile(parameters.Get<std::string>("json_file"));
+      std::string jsonStr;
+      if (jsonFile.is_open()) {
+        std::stringstream jsonBuffer;
+        jsonBuffer << jsonFile.rdbuf();
+        jsonStr = jsonBuffer.str();
+        json = jsonStr.c_str();
+      } else {
+        std::cout << "Could not open json file, using hardcoded json..." << std::endl;
+      }
+
       rapidjson::Document d;
       d.Parse(json);
       int curDim = in_dim;
@@ -239,9 +252,28 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
             curDim = out_dim;
           }
         }
+
+        bool decay = false;
+        float rate = 0.5;
+        if (type == SPR_MUL || type == MAT_MUL) {
+          if (v.HasMember("decay") && v["decay"].IsBool()) {
+            decay = v["decay"].GetBool();
+          } else if (v.HasMember("decay") && v["decay"].IsString()) {
+            std::istringstream(v["decay"].GetString()) >> std::boolalpha >> decay;
+          } else {
+            std::cout << "Could not parse decay of " << name << " layer" << std::endl;
+          }
+        }
+        if (type == DROPOUT) {
+          if (v.HasMember("rate") && v["rate"].IsNumber()) {
+            rate = v["rate"].GetFloat();
+          } else {
+            std::cout << "Could not parse rate of dropout layer" << std::endl;
+          }
+        }
         if (!unknownLayer) {
           LayerParam *prev = layer_params.empty() ? nullptr : &layer_params.back();
-          layer_params.emplace_back(prev, type, curDim);
+          layer_params.emplace_back(prev, type, curDim, decay, rate);
         }
       }
 
@@ -320,7 +352,7 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
         LayerParam curr = layer_params[i];
         module *m;
         switch (curr.type) {
-          case DROPOUT: m = new dropout<SizeT, ValueT>(*prev.output, prev.output_grad, 0.5, &gen, &fw_dropout, &bw_dropout); break;
+          case DROPOUT: m = new dropout<SizeT, ValueT>(*prev.output, prev.output_grad, curr.dropoutRate, &gen, &fw_dropout, &bw_dropout); break;
           case SPR_MUL: m = new sprmul<SizeT, ValueT, SpmatT>(parameters, x_work, *curr.w, *curr.w_grad, *curr.output, *curr.output_grad, prev.dim, curr.dim, &fw_sprmul, &bw_sprmul); break;
           case GRAPH_SUM: m = new graph_sum<SizeT, ValueT, GraphT>(parameters, sub_graph, *prev.output, *prev.output_grad, *curr.output, *curr.output_grad, prev.dim, &fw_graphsum, &bw_graphsum); break;
           case RELU: m = new relu<SizeT, ValueT>(*prev.output, *prev.output_grad, num_nodes * prev.dim, &fw_relu, &bw_relu); break;
@@ -340,7 +372,7 @@ struct Problem : ProblemBase<_GraphT, _FLAG> {
 
       for (int i = 0; i < w_layers.size(); i++) {
         LayerParam &layer = *w_layers[i];
-        vars.emplace_back(*layer.w, *layer.w_grad, i == 0 /* TODO: to be read from json */);
+        vars.emplace_back(*layer.w, *layer.w_grad, layer.decay);
       }
 
       GUARD_CU(sub_graph.Move(util::HOST, target, this->stream));

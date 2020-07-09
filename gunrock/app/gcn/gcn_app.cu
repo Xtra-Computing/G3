@@ -50,6 +50,13 @@ cudaError_t UseParameters(util::Parameters &parameters) {
   GUARD_CU(UseParameters_enactor(parameters));
 
   GUARD_CU(parameters.Use<std::string>(
+      "json_file",
+      util::REQUIRED_ARGUMENT | util::SINGLE_VALUE | util::REQUIRED_PARAMETER,
+      "../../gunrock/app/gcn/test.json",
+      "gcn layers", __FILE__, __LINE__
+  ));
+
+  GUARD_CU(parameters.Use<std::string>(
       "feature_file",
       util::REQUIRED_ARGUMENT | util::SINGLE_VALUE | util::REQUIRED_PARAMETER,
       "../../dataset/gcn/citeseer.svmlight",
