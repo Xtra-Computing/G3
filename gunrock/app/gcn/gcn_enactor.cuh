@@ -155,7 +155,7 @@ struct GCNIterationLoop
           dst = src;
         }, in_feature.GetSize(), util::DEVICE))
         GUARD_CU(truth.ForAll([label, split]__host__ __device__(int *t, SizeT &i) {
-          t[i] = split[i] == 1 ? label[i] : -1;
+          t[i] = split[i] == 3 ? label[i] : -1;
         }))
 
         for (auto m : modules) {
