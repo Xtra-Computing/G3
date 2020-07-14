@@ -6,6 +6,8 @@
 ## What's new
 G3 is research prototype that is currently in active development. You are welcome to share ideas and contribute.
 
+The web-based GUI can be found at https://g3-gui.web.app/. 
+
 ## Overview
 **G<sup>**3**</sup>** is built as a programming framework for Graph Neural Network (GNN) applications that supports graph related operations natively and leverages on the computation power of Graphics Processing Units (GPU). It is named G3, which stands for Graph processing system but tailored for GNN processing on GPUs. The values of G3 can be summarized as follow:
 
