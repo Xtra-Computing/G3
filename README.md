@@ -46,7 +46,7 @@ cd bin
 ```
 
 ## How to cite **G<sup>**3**</sup>** 
-If you use **G<sup>**3**</sup>**  in your paper, please cite our work ([full version](https://www.comp.nus.edu.sg/~hebs/pub/vldb2020-G3-submission.pdf)).
+If you use **G<sup>**3**</sup>**  in your paper, please cite our work ([full version](https://www.comp.nus.edu.sg/~hebs/pub/vldb2020-G3.pdf)).
 ```
 @article{husong2020g3,
  author = {Liu, Husong and Lu, Shengliang and Chen, Xinyu and He, Bingsheng},
