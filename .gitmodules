@@ -13,3 +13,6 @@
 [submodule "externals/rapidjson"]
 	path = externals/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
+[submodule "G3-Demo"]
+	path = G3-Demo
+	url = https://github.com/lushl9301/G3-Demo
