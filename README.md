@@ -3,6 +3,8 @@
   <br>
 </p>
 
+## G3: A Programmable GNN Training System on GPU
+
 ## What's new
 G3 is research prototype that is currently in active development. You are welcome to share ideas and contribute.
 
