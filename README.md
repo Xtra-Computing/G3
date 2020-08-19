@@ -10,6 +10,8 @@ G3 is research prototype that is currently in active development. You are welcom
 
 The web-based GUI can be found at https://g3-gui.web.app/. 
 
+VLDB 2020 demo video (with a case study on predicting COVID in Singapore): https://www.youtube.com/watch?v=UJH0nh38wSg
+
 ## Overview
 **G<sup>**3**</sup>** is built as a programming framework for Graph Neural Network (GNN) applications that supports graph related operations natively and leverages on the computation power of Graphics Processing Units (GPU). It is named G3, which stands for Graph processing system but tailored for GNN processing on GPUs. The values of G3 can be summarized as follow:
 
