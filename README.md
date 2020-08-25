@@ -21,7 +21,7 @@ VLDB 2020 demo video (with a case study on predicting COVID in Singapore): https
 - G3 frees the programmers from low level GPU thread management and memory management concerns, which is usually daunting and injects numerous unnoticeable bugs into the system.
 - G3 automatically applies graph-centric optimizations on the GNN architectures during run time.
 
-We have done some preliminary studies to show how such system can be used to build Graph Convolutional Network (GCN) , the state of the art in various GNN models, and how our implementation exceeds the performances of Tensorﬂow implementation (the original implementation) as well as PyTorch implementation by a signiﬁcant margin. Details are [here](https://www.comp.nus.edu.sg/~hebs/pub/vldb2020-G3-submission.pdf).
+We have done some preliminary studies to show how such system can be used to build Graph Convolutional Network (GCN) , the state of the art in various GNN models, and how our implementation exceeds the performances of Tensorﬂow implementation (the original implementation) as well as PyTorch implementation by a signiﬁcant margin. Details are [here](https://www.comp.nus.edu.sg/~hebs/pub/vldb2020-G3.pdf).
 
 G3 is built based on **Gunrock**, a CUDA library for graph-processing designed specifically for the GPU. For more details, see [Gunrock's Github repo](https://github.com/gunrock/gunrock/). Most of the code is reused from Gunrock's code base. G3 added these components to Gunrock to efficiently support GNN training 1) [GCN App](/gunrock/app/gcn) and 2) [GCN Example](/examples/gcn).
 
