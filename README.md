@@ -64,3 +64,8 @@ If you use **G<sup>**3**</sup>**  in your paper, please cite our work ([full ver
 * Graph systems on GPU: [Gunrock](https://github.com/gunrock/gunrock/) | [Medusa](https://github.com/Xtra-Computing/Medusa)
 * Graph neural network systems:[PyTorch Geometric (PyG)](https://github.com/rusty1s/pytorch_geometric) | [Tensorflow](https://github.com/tensorflow/tensorflow) 
 
+## Acknowledgement 
+* We acknowledge Ee Ter Low, Long Sha, and Karan Sapra
+for their contributions on developing the demo (with special support under COVID internship program (T1 251RES1824)). 
+* This work is supported by a collaborative grant from Microsoft Research Asia.
+
